@@ -2,15 +2,38 @@
 
 const defaultMembers = [];
 
-const roleHierarchy = {
-  'Aprendiz Mapper': 1,
-  'Mapper': 2,
-  'Auxiliar Mapper': 3,
-  'Responsável Mapper': 4
-};
+// Verificar se localStorage está disponível
+function isLocalStorageAvailable() {
+  try {
+    const test = '__localStorage_test__';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Fallback para quando localStorage não está disponível
+let memoryStorage = {};
+
+function getStorageItem(key) {
+  if (isLocalStorageAvailable()) {
+    return localStorage.getItem(key);
+  }
+  return memoryStorage[key] || null;
+}
+
+function setStorageItem(key, value) {
+  if (isLocalStorageAvailable()) {
+    localStorage.setItem(key, value);
+  } else {
+    memoryStorage[key] = value;
+  }
+}
 
 function getMembers() {
-  const raw = localStorage.getItem(STORAGE_KEY);
+  const raw = getStorageItem(STORAGE_KEY);
   if (!raw) {
     saveMembers(defaultMembers);
     return [...defaultMembers];
@@ -19,13 +42,13 @@ function getMembers() {
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch (err) {
-    console.error(err);
+    console.error('Erro ao parsear dados do localStorage:', err);
     return [...defaultMembers];
   }
 }
 
 function saveMembers(members) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+  setStorageItem(STORAGE_KEY, JSON.stringify(members));
 }
 
 function sortMembersByHierarchy(members) {
@@ -91,13 +114,30 @@ function renderIndex() {
 
   let activeFilter = 'all';
 
+function renderIndex() {
+  const members = getMembers();
+  const tableBody = document.getElementById('membersTableBody');
+  const totalMembers = document.getElementById('totalMembers');
+  const totalResp = document.getElementById('totalResp');
+  const totalAux = document.getElementById('totalAux');
+  const totalMapper = document.getElementById('totalMapper');
+  const filters = document.querySelectorAll('.cat-btn');
+
+  let activeFilter = 'all';
+
   function render() {
     tableBody.innerHTML = '';
     let filtered = members.filter(m => activeFilter === 'all' || m.role === activeFilter);
     filtered = sortMembersByHierarchy(filtered);
 
     if (filtered.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #93c5fd; padding: 2rem;">Nenhum membro cadastrado no setor</td></tr>';
+      if (members.length === 0) {
+        // Nenhum membro cadastrado
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #93c5fd; padding: 2rem;">Nenhum membro cadastrado no setor<br><small style="color: #64748b; font-size: 0.8rem;">Adicione membros usando os botões de administração</small></td></tr>';
+      } else {
+        // Filtro ativo mas nenhum resultado
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #93c5fd; padding: 2rem;">Nenhum membro encontrado para este filtro</td></tr>';
+      }
     } else {
       filtered.forEach(m => {
         const row = document.createElement('tr');
@@ -232,12 +272,24 @@ function handleNavButtons() {
 }
 
 (function init() {
-  const path = window.location.pathname.split('/').pop();
+  // Aguardar DOM estar completamente carregado
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+  } else {
+    initApp();
+  }
 
-  if (path === 'index.html' || path === '') {
-    renderIndex();
-    handleLoginModal();
-    handleNavButtons();
+  function initApp() {
+    const path = window.location.pathname.split('/').pop();
+
+    if (path === 'index.html' || path === '') {
+      // Pequeno delay para garantir que todos os elementos estejam disponíveis
+      setTimeout(() => {
+        renderIndex();
+        handleLoginModal();
+        handleNavButtons();
+      }, 100);
+    }
   }
 })();
 

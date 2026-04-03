@@ -1,18 +1,46 @@
 const STORAGE_KEY = 'mapperMembers';
 
+function isLocalStorageAvailable() {
+  try {
+    const test = '__localStorage_test__';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+let memoryStorage = {};
+
+function getStorageItem(key) {
+  if (isLocalStorageAvailable()) {
+    return localStorage.getItem(key);
+  }
+  return memoryStorage[key] || null;
+}
+
+function setStorageItem(key, value) {
+  if (isLocalStorageAvailable()) {
+    localStorage.setItem(key, value);
+  } else {
+    memoryStorage[key] = value;
+  }
+}
+
 function getMembers() {
-  const raw = localStorage.getItem(STORAGE_KEY);
+  const raw = getStorageItem(STORAGE_KEY);
   if (!raw) return [];
   try {
     return JSON.parse(raw);
   } catch (err) {
-    console.error(err);
+    console.error('Erro ao parsear dados do localStorage:', err);
     return [];
   }
 }
 
 function saveMembers(members) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+  setStorageItem(STORAGE_KEY, JSON.stringify(members));
 }
 
 function addMember(member) {
