@@ -1,6 +1,6 @@
 // Admin Dashboard Scripts
 
-const STORAGE_KEY = 'mapperMembers';
+const COLLECTION_NAME = 'mapperMembers';
 
 const roleHierarchy = {
   'Aprendiz Mapper': 1,
@@ -9,40 +9,74 @@ const roleHierarchy = {
   'Responsável Mapper': 4
 };
 
-function getMembers() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return [];
+function waitForFirebase() {
+  return new Promise((resolve) => {
+    if (window.firebaseReady && window.db) {
+      resolve();
+    } else {
+      setTimeout(() => waitForFirebase().then(resolve), 100);
+    }
+  });
+}
+
+async function getMembers() {
+  await waitForFirebase();
   try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const snapshot = await window.db.collection(COLLECTION_NAME).get();
+    const members = [];
+    snapshot.forEach(doc => {
+      members.push({ id: doc.id, ...doc.data() });
+    });
+    return members;
   } catch (err) {
-    console.error(err);
+    console.error('Erro ao carregar membros:', err);
     return [];
   }
 }
 
-function saveMembers(members) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+async function removeAllMembers() {
+  await waitForFirebase();
+  try {
+    const snapshot = await window.db.collection(COLLECTION_NAME).get();
+    const batch = window.db.batch();
+    snapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+    return true;
+  } catch (err) {
+    console.error('Erro ao remover todos:', err);
+    return false;
+  }
 }
 
-function removeAllMembers() {
-  localStorage.removeItem(STORAGE_KEY);
-  return true;
-}
-
-function removeMembersBelowRole(maxRoleHierarchy) {
-  const members = getMembers();
-  const filtered = members.filter(m => roleHierarchy[m.role] > maxRoleHierarchy);
-  saveMembers(filtered);
-  return true;
+async function removeMembersBelowRole(maxRoleHierarchy) {
+  await waitForFirebase();
+  try {
+    let delete_query;
+    const members = await getMembers();
+    
+    const membersToDelete = members.filter(m => roleHierarchy[m.role] <= maxRoleHierarchy);
+    
+    const batch = window.db.batch();
+    membersToDelete.forEach(member => {
+      const ref = window.db.collection(COLLECTION_NAME).doc(member.id);
+      batch.delete(ref);
+    });
+    await batch.commit();
+    return true;
+  } catch (err) {
+    console.error('Erro ao remover membros abaixo da role:', err);
+    return false;
+  }
 }
 
 // Auxiliar Dashboard
 const btnRemoveAllAux = document.getElementById('btnRemoveAllAux');
 if (btnRemoveAllAux) {
-  btnRemoveAllAux.addEventListener('click', () => {
+  btnRemoveAllAux.addEventListener('click', async () => {
     if (confirm('Deseja remover todos os Aprendizes? Esta ação não pode ser desfeita.')) {
-      removeMembersBelowRole(1); // Remove apenas cargos com hierarchy <= 1 (Aprendiz)
+      await removeMembersBelowRole(1); // Remove apenas cargos com hierarchy <= 1 (Aprendiz)
       alert('Aprendizes removidos com sucesso!');
       setTimeout(() => window.location.href = 'auxiliar.html', 500);
     }
@@ -52,9 +86,9 @@ if (btnRemoveAllAux) {
 // Responsável Dashboard
 const btnRemoveAllResp = document.getElementById('btnRemoveAllResp');
 if (btnRemoveAllResp) {
-  btnRemoveAllResp.addEventListener('click', () => {
+  btnRemoveAllResp.addEventListener('click', async () => {
     if (confirm('Deseja remover todos os membros? Esta ação não pode ser desfeita.')) {
-      removeAllMembers();
+      await removeAllMembers();
       alert('Todos os membros foram removidos com sucesso!');
       setTimeout(() => window.location.href = 'index.html', 500);
     }
@@ -62,8 +96,8 @@ if (btnRemoveAllResp) {
 }
 
 // Relatório de Membros
-function gerarRelatorio() {
-  const members = getMembers();
+async function gerarRelatorio() {
+  const members = await getMembers();
   const cargosPermitidos = ['Aprendiz Mapper', 'Mapper', 'Auxiliar Mapper'];
   const membrosFiltrados = members.filter(m => cargosPermitidos.includes(m.role));
 
@@ -87,8 +121,8 @@ const btnCopiarRelatorio = document.getElementById('btnCopiarRelatorio');
 const btnFecharRelatorioBtn = document.getElementById('btnFecharRelatorioBtn');
 
 if (btnRelatorio) {
-  btnRelatorio.addEventListener('click', () => {
-    const relatorio = gerarRelatorio();
+  btnRelatorio.addEventListener('click', async () => {
+    const relatorio = await gerarRelatorio();
     relatorioContent.value = relatorio;
     relatorioModal.classList.remove('hidden');
   });

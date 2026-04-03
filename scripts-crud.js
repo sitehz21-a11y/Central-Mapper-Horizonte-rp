@@ -1,77 +1,96 @@
-const STORAGE_KEY = 'mapperMembers';
+const COLLECTION_NAME = 'mapperMembers';
 
-function isLocalStorageAvailable() {
+function waitForFirebase() {
+  return new Promise((resolve) => {
+    if (window.firebaseReady && window.db) {
+      resolve();
+    } else {
+      setTimeout(() => waitForFirebase().then(resolve), 100);
+    }
+  });
+}
+
+async function getMembers() {
+  await waitForFirebase();
   try {
-    const test = '__localStorage_test__';
-    localStorage.setItem(test, test);
-    localStorage.removeItem(test);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-let memoryStorage = {};
-
-function getStorageItem(key) {
-  if (isLocalStorageAvailable()) {
-    return localStorage.getItem(key);
-  }
-  return memoryStorage[key] || null;
-}
-
-function setStorageItem(key, value) {
-  if (isLocalStorageAvailable()) {
-    localStorage.setItem(key, value);
-  } else {
-    memoryStorage[key] = value;
-  }
-}
-
-function getMembers() {
-  const raw = getStorageItem(STORAGE_KEY);
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw);
+    const snapshot = await window.db.collection(COLLECTION_NAME).get();
+    const members = [];
+    snapshot.forEach(doc => {
+      members.push({ id: doc.id, ...doc.data() });
+    });
+    return members;
   } catch (err) {
-    console.error('Erro ao parsear dados do localStorage:', err);
+    console.error('Erro ao carregar membros:', err);
     return [];
   }
 }
 
-function saveMembers(members) {
-  setStorageItem(STORAGE_KEY, JSON.stringify(members));
+async function addMember(member) {
+  await waitForFirebase();
+  try {
+    const members = await getMembers();
+    const exists = members.some(m => 
+      m.nick.toLowerCase() === member.nick.toLowerCase() && m.rg === member.rg
+    );
+    if (exists) return false;
+
+    member.registered = new Date().toLocaleString();
+    await window.db.collection(COLLECTION_NAME).add(member);
+    return true;
+  } catch (err) {
+    console.error('Erro ao adicionar membro:', err);
+    return false;
+  }
 }
 
-function addMember(member) {
-  const members = getMembers();
-  const exists = members.some(m => m.nick.toLowerCase() === member.nick.toLowerCase() && m.rg === member.rg);
-  if (exists) return false;
-  member.registered = new Date().toLocaleString();
-  members.push(member);
-  saveMembers(members);
-  return true;
+async function removeMember(nick, rg) {
+  await waitForFirebase();
+  try {
+    const snapshot = await window.db.collection(COLLECTION_NAME)
+      .where('nick', '==', nick)
+      .where('rg', '==', rg)
+      .get();
+    
+    if (snapshot.empty) return false;
+
+    const batch = window.db.batch();
+    snapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+    return true;
+  } catch (err) {
+    console.error('Erro ao remover membro:', err);
+    return false;
+  }
 }
 
-function removeMember(nick, rg) {
-  const members = getMembers();
-  const index = members.findIndex(m => m.nick.toLowerCase() === nick.toLowerCase() && m.rg === rg);
-  if (index < 0) return false;
-  members.splice(index, 1);
-  saveMembers(members);
-  return true;
-}
+async function updateMemberRole(nick, rg, role, level, by) {
+  await waitForFirebase();
+  try {
+    const snapshot = await window.db.collection(COLLECTION_NAME)
+      .where('nick', '==', nick)
+      .where('rg', '==', rg)
+      .get();
+    
+    if (snapshot.empty) return false;
 
-function updateMemberRole(nick, rg, role, level, by) {
-  const members = getMembers();
-  const member = members.find(m => m.nick.toLowerCase() === nick.toLowerCase() && m.rg === rg);
-  if (!member) return false;
-  member.role = role;
-  member.level = level;
-  member.by = by;
-  member.registered = new Date().toLocaleString();
-  saveMembers(members);
-  return true;
+    const updateData = {
+      role: role,
+      level: level,
+      by: by,
+      registered: new Date().toLocaleString()
+    };
+
+    const batch = window.db.batch();
+    snapshot.forEach(doc => {
+      batch.update(doc.ref, updateData);
+    });
+    await batch.commit();
+    return true;
+  } catch (err) {
+    console.error('Erro ao atualizar role:', err);
+    return false;
 }
 
 (function init() {
@@ -87,7 +106,7 @@ function updateMemberRole(nick, rg, role, level, by) {
     if (levelLabel) levelLabel.style.display = 'none';
   }
 
-  form.addEventListener('submit', function (event) {
+  form.addEventListener('submit', async function (event) {
     event.preventDefault();
     const nick = document.getElementById('fieldNick').value.trim();
     const rg = document.getElementById('fieldRg').value.trim();
@@ -110,7 +129,7 @@ function updateMemberRole(nick, rg, role, level, by) {
     const by = byEl ? byEl.value.trim() : 'Sistema';
 
     if (action === 'add') {
-      const success = addMember({ level: levelCatalog, levelExp, nick, rg, role, discord, numero, idade, orgCorp, by });
+      const success = await addMember({ level: levelCatalog, levelExp, nick, rg, role, discord, numero, idade, orgCorp, by });
       message.textContent = success ? `✓ ${nick} cadastrado com sucesso!` : '✗ Membro já existe (mesmo NICK + RG).';
       message.style.color = success ? '#a7f3d0' : '#f87171';
       if (success) {
@@ -119,11 +138,11 @@ function updateMemberRole(nick, rg, role, level, by) {
         }, 1500);
       }
     } else if (action === 'remove') {
-      const success = removeMember(nick, rg);
+      const success = await removeMember(nick, rg);
       message.textContent = success ? `✓ ${nick} removido com sucesso!` : '✗ Membro não encontrado.';
       message.style.color = success ? '#a7f3d0' : '#f87171';
     } else if (action === 'promote' || action === 'demote') {
-      const success = updateMemberRole(nick, rg, role, levelCatalog, by);
+      const success = await updateMemberRole(nick, rg, role, levelCatalog, by);
       message.textContent = success ? `✓ ${nick} agora é ${role}!` : '✗ Membro não encontrado.';
       message.style.color = success ? '#a7f3d0' : '#f87171';
     }

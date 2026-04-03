@@ -1,121 +1,130 @@
-﻿const STORAGE_KEY = 'mapperMembers';
+﻿const COLLECTION_NAME = 'mapperMembers';
+let membersCache = [];
 
-const defaultMembers = [];
+// Aguardar Firebase ficar pronto
+function waitForFirebase() {
+  return new Promise((resolve) => {
+    if (window.firebaseReady && window.db) {
+      resolve();
+    } else {
+      setTimeout(() => waitForFirebase().then(resolve), 100);
+    }
+  });
+}
 
-// Verificar se localStorage está disponível
-function isLocalStorageAvailable() {
+async function getMembers() {
+  await waitForFirebase();
+  console.log('Firebase ready, loading members...');
   try {
-    const test = '__localStorage_test__';
-    localStorage.setItem(test, test);
-    localStorage.removeItem(test);
+    const snapshot = await window.db.collection(COLLECTION_NAME).get();
+    const members = [];
+    snapshot.forEach(doc => {
+      members.push({ id: doc.id, ...doc.data() });
+    });
+    membersCache = members;
+    console.log('Members loaded from Firestore:', members);
+    return members;
+  } catch (err) {
+    console.error('Erro ao carregar membros:', err);
+    return [];
+  }
+}
+
+async function addMember(member) {
+  await waitForFirebase();
+  try {
+    const exists = membersCache.some(m =>
+      m.nick.toLowerCase() === member.nick.toLowerCase() && m.rg === member.rg
+    );
+    if (exists) return false;
+
+    member.registered = new Date().toLocaleString();
+    const docRef = await window.db.collection(COLLECTION_NAME).add(member);
+    membersCache.push({ id: docRef.id, ...member });
     return true;
-  } catch (e) {
+  } catch (err) {
+    console.error('Erro ao adicionar membro:', err);
     return false;
   }
 }
 
-// Fallback para quando localStorage não está disponível
-let memoryStorage = {};
-
-function getStorageItem(key) {
-  if (isLocalStorageAvailable()) {
-    return localStorage.getItem(key);
-  }
-  return memoryStorage[key] || null;
-}
-
-function setStorageItem(key, value) {
-  if (isLocalStorageAvailable()) {
-    localStorage.setItem(key, value);
-  } else {
-    memoryStorage[key] = value;
-  }
-}
-
-function getMembers() {
-  const raw = getStorageItem(STORAGE_KEY);
-  if (!raw) {
-    saveMembers(defaultMembers);
-    return [...defaultMembers];
-  }
+async function removeMember(nick, rg) {
+  await waitForFirebase();
   try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const snapshot = await window.db.collection(COLLECTION_NAME)
+      .where('nick', '==', nick)
+      .where('rg', '==', rg)
+      .get();
+
+    if (snapshot.empty) return false;
+
+    const batch = window.db.batch();
+    snapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+
+    membersCache = membersCache.filter(m => !(m.nick === nick && m.rg === rg));
+    return true;
   } catch (err) {
-    console.error('Erro ao parsear dados do localStorage:', err);
-    return [...defaultMembers];
+    console.error('Erro ao remover membro:', err);
+    return false;
   }
 }
 
-function saveMembers(members) {
-  setStorageItem(STORAGE_KEY, JSON.stringify(members));
+async function removeAllMembers() {
+  await waitForFirebase();
+  try {
+    const snapshot = await window.db.collection(COLLECTION_NAME).get();
+    const batch = window.db.batch();
+    snapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+    membersCache = [];
+    return true;
+  } catch (err) {
+    console.error('Erro ao remover todos:', err);
+    return false;
+  }
 }
 
-function sortMembersByHierarchy(members) {
-  return [...members].sort((a, b) => {
-    const hierarchyA = roleHierarchy[a.role] || 0;
-    const hierarchyB = roleHierarchy[b.role] || 0;
-    return hierarchyA - hierarchyB;
-  });
+async function updateMemberRole(nick, rg, role, level, by) {
+  await waitForFirebase();
+  try {
+    const snapshot = await window.db.collection(COLLECTION_NAME)
+      .where('nick', '==', nick)
+      .where('rg', '==', rg)
+      .get();
+
+    if (snapshot.empty) return false;
+
+    const updateData = {
+      role: role,
+      level: level,
+      levelExp: level,
+      by: by,
+      registered: new Date().toLocaleString()
+    };
+
+    const batch = window.db.batch();
+    snapshot.forEach(doc => {
+      batch.update(doc.ref, updateData);
+    });
+    await batch.commit();
+
+    membersCache = membersCache.map(m =>
+      (m.nick === nick && m.rg === rg) ? { ...m, ...updateData } : m
+    );
+    return true;
+  } catch (err) {
+    console.error('Erro ao atualizar role:', err);
+    return false;
+  }
 }
 
-function addMember(member) {
-  const members = getMembers();
-  const exists = members.some(m => m.nick.toLowerCase() === member.nick.toLowerCase() && m.rg === member.rg);
-  if (exists) return false;
-  member.registered = new Date().toLocaleString();
-  members.push(member);
-  saveMembers(members);
-  return true;
-}
-
-function removeMember(nick, rg) {
-  const members = getMembers();
-  const index = members.findIndex(m => m.nick.toLowerCase() === nick.toLowerCase() && m.rg === rg);
-  if (index < 0) return false;
-  members.splice(index, 1);
-  saveMembers(members);
-  return true;
-}
-
-function removeAllMembers() {
-  saveMembers([]);
-  return true;
-}
-
-function removeMembersBelowRole(maxRole) {
-  const members = getMembers();
-  const filtered = members.filter(m => roleHierarchy[m.role] > maxRole);
-  saveMembers(filtered);
-  return true;
-}
-
-function updateMemberRole(nick, rg, role, level, by) {
-  const members = getMembers();
-  const member = members.find(m => m.nick.toLowerCase() === nick.toLowerCase() && m.rg === rg);
-  if (!member) return false;
-  member.role = role;
-  member.level = level;
-  member.levelExp = level;
-  member.by = by;
-  member.registered = new Date().toLocaleString();
-  saveMembers(members);
-  return true;
-}
-
-function renderIndex() {
-  const members = getMembers();
-  const tableBody = document.getElementById('membersTableBody');
-  const totalMembers = document.getElementById('totalMembers');
-  const totalResp = document.getElementById('totalResp');
-  const totalAux = document.getElementById('totalAux');
-  const totalMapper = document.getElementById('totalMapper');
-  const filters = document.querySelectorAll('.cat-btn');
-
-  let activeFilter = 'all';
-
-function renderIndex() {
-  const members = getMembers();
+async function renderIndex() {
+  const members = await getMembers();
   const tableBody = document.getElementById('membersTableBody');
   const totalMembers = document.getElementById('totalMembers');
   const totalResp = document.getElementById('totalResp');
@@ -126,6 +135,7 @@ function renderIndex() {
   let activeFilter = 'all';
 
   function render() {
+    console.log('Rendering members, activeFilter:', activeFilter, 'members:', members);
     tableBody.innerHTML = '';
     let filtered = members.filter(m => activeFilter === 'all' || m.role === activeFilter);
     filtered = sortMembersByHierarchy(filtered);
@@ -172,12 +182,27 @@ function renderIndex() {
   render();
 }
 
+const roleHierarchy = {
+  'Aprendiz Mapper': 1,
+  'Mapper': 2,
+  'Auxiliar Mapper': 3,
+  'Responsável Mapper': 4
+};
+
+function sortMembersByHierarchy(members) {
+  return [...members].sort((a, b) => {
+    const hierarchyA = roleHierarchy[a.role] || 0;
+    const hierarchyB = roleHierarchy[b.role] || 0;
+    return hierarchyA - hierarchyB;
+  });
+}
+
 function showDetail(member) {
   const detailContent = document.getElementById('detailContent');
-  
+
   const isRestricted = member.role === 'Responsável Mapper' || member.role === 'Auxiliar Mapper';
   const roleClass = member.role === 'Responsável Mapper' ? '' : `role-${member.role.toLowerCase().replace(/\s+/g, '-')}`;
-  
+
   let extraInfo = '';
   if (!isRestricted) {
     extraInfo = `
@@ -186,7 +211,7 @@ function showDetail(member) {
       <p><strong>Org/Corp:</strong> ${member.orgCorp || 'N/A'}</p>
     `;
   }
-  
+
   detailContent.innerHTML = `
     <div class="detail-row">
       <p><strong>NICK:</strong> ${member.nick}</p>
@@ -212,7 +237,7 @@ function showDetail(member) {
       <p><strong>Data/Hora:</strong> ${member.registered}</p>
     </div>
   `;
-  
+
   document.getElementById('detailPanel').classList.remove('hidden');
 }
 
@@ -236,7 +261,7 @@ function handleLoginModal() {
 
   adminSubmitBtn.addEventListener('click', () => {
     const pass = adminPassword.value.trim();
-    
+
     if (pass === 'cria') {
       sessionStorage.setItem('mapperAdminRole', 'Auxiliar');
       window.location.href = 'auxiliar.html';
@@ -279,165 +304,17 @@ function handleNavButtons() {
     initApp();
   }
 
-  function initApp() {
+  async function initApp() {
     const path = window.location.pathname.split('/').pop();
 
     if (path === 'index.html' || path === '') {
       // Pequeno delay para garantir que todos os elementos estejam disponíveis
-      setTimeout(() => {
-        renderIndex();
+      setTimeout(async () => {
+        console.log('Initializing renderIndex...');
+        await renderIndex();
         handleLoginModal();
         handleNavButtons();
       }, 100);
     }
   }
 })();
-
-
-function getMembers() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    saveMembers(defaultMembers);
-    return [...defaultMembers];
-  }
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (err) {
-    console.error(err);
-    return [...defaultMembers];
-  }
-}
-
-function saveMembers(members) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
-}
-
-function findMember(nick, rg) {
-  const members = getMembers();
-  return members.find(m => m.nick.toLowerCase() === nick.toLowerCase() && m.rg === rg);
-}
-
-function removeMember(nick, rg) {
-  const members = getMembers();
-  const index = members.findIndex(m => m.nick.toLowerCase() === nick.toLowerCase() && m.rg === rg);
-  if (index < 0) return false;
-  members.splice(index, 1);
-  saveMembers(members);
-  return true;
-}
-
-function updateMemberRole(nick, rg, role, level, by) {
-  const members = getMembers();
-  const member = members.find(m => m.nick.toLowerCase() === nick.toLowerCase() && m.rg === rg);
-  if (!member) return false;
-  member.role = role;
-  member.level = level;
-  member.by = by;
-  member.registered = new Date().toLocaleString();
-  saveMembers(members);
-  return true;
-}
-
-function addMember(member) {
-  const members = getMembers();
-  const exists = members.some(m => m.nick.toLowerCase() === member.nick.toLowerCase() && m.rg === member.rg);
-  if (exists) return false;
-  member.registered = new Date().toLocaleString();
-  members.push(member);
-  saveMembers(members);
-  return true;
-}
-
-function handleLoginPage() {
-  const loginForm = document.getElementById('loginForm');
-  const msg = document.getElementById('loginMessage');
-
-  loginForm.addEventListener('submit', function (event) {
-    event.preventDefault();
-    const role = document.getElementById('adminRole').value;
-    const pass = document.getElementById('adminPassword').value.trim();
-
-    if ((role === 'Auxiliar' && pass === 'cria') || (role === 'Responsável' && pass === 'criarp')) {
-      sessionStorage.setItem('mapperAdminRole', role);
-      window.location.href = 'admin.html';
-    } else {
-      msg.textContent = 'Senha inválida para a função selecionada.';
-      msg.style.color = '#f87171';
-    }
-  });
-}
-
-function handleAdminPage() {
-  const role = sessionStorage.getItem('mapperAdminRole');
-  const status = document.getElementById('adminStatus');
-  if (!role) {
-    status.textContent = 'Acesso não autorizado. Faça login em login.html.';
-    status.style.color = '#f87171';
-    return;
-  }
-  status.textContent = `Acesso garantido como ${role}.`;
-  status.style.color = '#a7f3d0';
-}
-
-function setupCrudForm() {
-  const form = document.getElementById('crudForm');
-  if (!form) return;
-  const action = form.dataset.action;
-  const context = form.dataset.context;
-  const message = document.getElementById('crudMessage');
-
-  const sessionRole = sessionStorage.getItem('mapperAdminRole');
-  const fieldBy = document.getElementById('fieldBy');
-  if (fieldBy) {
-    if (sessionRole === 'Auxiliar') fieldBy.value = 'Auxiliar Mapper';
-    else if (sessionRole === 'Responsável') fieldBy.value = 'Responsável Mapper';
-    else if (!fieldBy.value) fieldBy.value = 'Sistema';
-  }
-
-  if (context === 'add_aux') {
-    document.getElementById('fieldRole').value = 'Auxiliar Mapper';
-  }
-
-  if (context === 'add_resp') {
-    document.getElementById('fieldRole').value = 'Responsável Mapper';
-  }
-
-  form.addEventListener('submit', function (event) {
-    event.preventDefault();
-    const nick = document.getElementById('fieldNick').value.trim();
-    const rg = document.getElementById('fieldRg').value.trim();
-    const level = parseInt(document.getElementById('fieldLevel').value, 10) || 1;
-    const role = document.getElementById('fieldRole').value;
-    const by = document.getElementById('fieldBy').value.trim() || 'Sistema';
-    const discord = document.getElementById('fieldDiscord') ? document.getElementById('fieldDiscord').value.trim() : '';
-    const numero = document.getElementById('fieldNumero') ? document.getElementById('fieldNumero').value.trim() : '';
-    const idade = document.getElementById('fieldIdade') ? parseInt(document.getElementById('fieldIdade').value, 10) : 0;
-    const orgCorp = document.getElementById('fieldOrgCorp') ? document.getElementById('fieldOrgCorp').value : 'Independente';
-
-    if (action === 'add') {
-      const success = addMember({
-        nick,
-        rg,
-        role,
-        level,
-        levelExp: level,
-        discord,
-        numero,
-        idade,
-        orgCorp,
-        by
-      });
-      message.textContent = success ? `Membro adicionado com sucesso: ${nick}` : 'Membro já existe (mesmo NICK + RG).';
-      message.style.color = success ? '#a7f3d0' : '#f87171';
-    } else if (action === 'remove') {
-      const success = removeMember(nick, rg);
-      message.textContent = success ? `Membro removido: ${nick}` : 'Membro não encontrado.';
-      message.style.color = success ? '#a7f3d0' : '#f87171';
-    } else if (action === 'promote' || action === 'demote') {
-      const success = updateMemberRole(nick, rg, role, level, by);
-      message.textContent = success ? `Cargo atualizado para: ${role}` : 'Membro não encontrado para promoção/rebaixamento.';
-      message.style.color = success ? '#a7f3d0' : '#f87171';
-    }
-  });
-}

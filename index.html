@@ -5,6 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Setor Mapper - Horizonte Game</title>
   <link rel="stylesheet" href="styles.css" />
+  
+  <!-- Firebase Initialization -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBcNRLYvv22b9VQ5_NgT2PiNWusI3y7YCk",
+      authDomain: "mappershz.firebaseapp.com",
+      projectId: "mappershz",
+      storageBucket: "mappershz.firebasestorage.app",
+      messagingSenderId: "132498202128",
+      appId: "1:132498202128:web:c3d7ba2b2f2f425638f495",
+      measurementId: "G-6DDELDM86C"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    // Torna db global para usar em script.js e scripts-crud.js
+    window.firebaseApp = app;
+    window.db = db;
+    window.firebaseReady = true;
+  </script>
 </head>
 <body>
   <div class="scene" aria-hidden="true">
@@ -82,96 +106,7 @@
     <button id="scrollToBottom" class="nav-btn">↓</button>
   </div>
 
-  <!-- Modal de Import/Export -->
-  <div id="importExportModal" class="overlay hidden" aria-modal="true" role="dialog">
-    <div class="drawer">
-      <button class="close" id="importExportClose">✕</button>
-      <h2>Importar/Exportar Dados</h2>
-      <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1rem;">
-        Use esta ferramenta para transferir dados entre dispositivos ou navegadores diferentes.
-      </p>
-      <div style="display: flex; flex-direction: column; gap: 1rem;">
-        <button id="exportBtn" class="btn" style="width: 100%;">📤 Exportar Dados</button>
-        <button id="importBtn" class="btn" style="width: 100%;">📥 Importar Dados</button>
-        <textarea id="importData" placeholder="Cole os dados exportados aqui..." style="min-height: 100px; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #374151; background: rgba(31, 41, 55, 0.5); color: white; resize: vertical;"></textarea>
-      </div>
-      <p id="importExportMessage" class="message" style="margin-top: 1rem;"></p>
-    </div>
-  </div>
-
   <script src="script.js"></script>
-  <script>
-    // Debug: verificar se o script está carregando
-    console.log('Index.html carregado, localStorage disponível:', typeof localStorage !== 'undefined');
-    console.log('Dados no localStorage:', localStorage.getItem('mapperMembers'));
-
-    // Funcionalidades de import/export
-    document.addEventListener('DOMContentLoaded', function() {
-      const importExportModal = document.getElementById('importExportModal');
-      const importExportClose = document.getElementById('importExportClose');
-      const exportBtn = document.getElementById('exportBtn');
-      const importBtn = document.getElementById('importBtn');
-      const importData = document.getElementById('importData');
-      const importExportMessage = document.getElementById('importExportMessage');
-
-      // Botão para abrir modal (adicionar no header)
-      const header = document.querySelector('.app-header');
-      const importExportBtn = document.createElement('button');
-      importExportBtn.textContent = '💾';
-      importExportBtn.className = 'btn-login-top';
-      importExportBtn.style.fontSize = '1.2rem';
-      importExportBtn.title = 'Importar/Exportar Dados';
-      importExportBtn.addEventListener('click', () => {
-        importExportModal.classList.remove('hidden');
-      });
-      header.appendChild(importExportBtn);
-
-      importExportClose.addEventListener('click', () => {
-        importExportModal.classList.add('hidden');
-        importData.value = '';
-        importExportMessage.textContent = '';
-      });
-
-      exportBtn.addEventListener('click', () => {
-        const data = localStorage.getItem('mapperMembers') || '[]';
-        navigator.clipboard.writeText(data).then(() => {
-          importExportMessage.textContent = '✓ Dados copiados para a área de transferência!';
-          importExportMessage.style.color = '#a7f3d0';
-        }).catch(() => {
-          importData.value = data;
-          importExportMessage.textContent = '✓ Dados exibidos no campo abaixo. Copie manualmente.';
-          importExportMessage.style.color = '#a7f3d0';
-        });
-      });
-
-      importBtn.addEventListener('click', () => {
-        try {
-          const data = importData.value.trim();
-          if (!data) {
-            importExportMessage.textContent = '✗ Cole os dados primeiro.';
-            importExportMessage.style.color = '#f87171';
-            return;
-          }
-
-          const members = JSON.parse(data);
-          if (!Array.isArray(members)) {
-            throw new Error('Dados inválidos');
-          }
-
-          localStorage.setItem('mapperMembers', JSON.stringify(members));
-          importExportMessage.textContent = `✓ ${members.length} membros importados com sucesso! Recarregue a página.`;
-          importExportMessage.style.color = '#a7f3d0';
-
-          // Recarregar dados
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
-        } catch (e) {
-          importExportMessage.textContent = '✗ Erro ao importar dados: ' + e.message;
-          importExportMessage.style.color = '#f87171';
-        }
-      });
-    });
-  </script>
+  <script src="admin-dashboard.js"></script>
 </body>
 </html>
