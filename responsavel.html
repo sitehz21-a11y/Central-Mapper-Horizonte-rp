@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Responsável - Setor Mapper</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="scene" aria-hidden="true">
+    <div class="sphere"></div>
+    <div class="cube"></div>
+    <div class="cube alt"></div>
+  </div>
+  <div class="app-container">
+    <header class="app-header">
+      <img src="https://cdn.discordapp.com/attachments/1472997423646511278/1489422331507114074/logo_new.png?ex=69d05c23&is=69cf0aa3&hm=2f8dd2c5c25e8a49e93f9d666dc236921c4e452bcdf600931204367757dde5c9" alt="Logo" style="height: 50px; margin-bottom: 0.5rem;" />
+      <h1>Painel Responsável Mapper(a)</h1>
+      <p>Gerenciar membros, auxiliares e responsáveis</p>
+    </header>
+
+    <main class="panel">
+      <p id="respStatus" class="message" style="text-align: center; font-size: 1.1rem;">Acesso autorizado como Responsável</p>
+      
+      <div class="admin-actions">
+        <a class="btn" href="add_member.html">Adicionar membro</a>
+        <a class="btn" href="add_table_member.html">Adicionar membro por tabela</a>
+        <a class="btn" href="remove_member.html">Remover membro</a>
+        <a class="btn" href="promote_member.html">Promover membro</a>
+        <a class="btn" href="demote_member.html">Rebaixar membro</a>
+        <a class="btn" href="add_aux.html">Adicionar auxiliar</a>
+        <a class="btn" href="add_resp.html">Adicionar responsável</a>
+        <button class="btn" id="btnRelatorio">📋 Relatório de Membros</button>
+        <button class="btn btn-danger-outline" id="btnRemoveAllResp">🗑️ Remover Todos</button>
+      </div>
+
+      <p style="text-align: center; margin-top: 2rem;">
+        <a class="btn-footer" href="index.html">Voltar ao Painel Principal</a>
+      </p>
+    </main>
+  </div>
+
+  <div id="relatorioModal" class="overlay hidden" aria-modal="true" role="dialog">
+    <div class="drawer" style="width: min(96vw, 700px); max-height: 85vh;">
+      <button class="close" id="btnFecharRelatorio">✕</button>
+      <h2>Relatório de Membros</h2>
+      <textarea id="relatorioContent" readonly style="width: 100%; min-height: 400px; padding: 0.75rem; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.4); border-radius: 0.65rem; color: #fff; margin-top: 0.75rem; font-family: monospace; resize: vertical;"></textarea>
+      <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+        <button class="btn" id="btnCopiarRelatorio">📋 Copiar</button>
+        <button class="btn" id="btnFecharRelatorioBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const role = sessionStorage.getItem('mapperAdminRole');
+    if (role !== 'Responsável') {
+      window.location.href = 'index.html';
+    }
+  </script>
+  <script src="admin-dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Setor Mapper - Horizonte Game</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="scene" aria-hidden="true">
+    <div class="sphere"></div>
+    <div class="cube"></div>
+    <div class="cube alt"></div>
+  </div>
+  <div class="app-container">
+    <header class="app-header">
+      <img src="https://cdn.discordapp.com/attachments/1472997423646511278/1489422331507114074/logo_new.png?ex=69d05c23&is=69cf0aa3&hm=2f8dd2c5c25e8a49e93f9d666dc236921c4e452bcdf600931204367757dde5c9" alt="Logo" style="height: 50px; margin-bottom: 0.5rem;" />
+      <h1>Setor Mapper</h1>
+      <p>Horizonte Roleplay</p>
+      <button class="btn-login-top" id="btnLoginTop">Login Administrativo</button>
+    </header>
+
+    <main class="panel">
+      <section class="summary">
+        <div><strong id="totalMembers">0</strong><span>Total de Membros</span></div>
+        <div><strong id="totalResp">0</strong><span>Responsáveis</span></div>
+        <div><strong id="totalAux">0</strong><span>Auxiliares</span></div>
+        <div><strong id="totalMapper">0</strong><span>Mappers</span></div>
+      </section>
+
+      <section class="filter-row">
+        <button class="btn cat-btn active" data-filter="all">Todos</button>
+        <button class="btn cat-btn" data-filter="Responsável Mapper">Responsável</button>
+        <button class="btn cat-btn" data-filter="Auxiliar Mapper">Auxiliar</button>
+        <button class="btn cat-btn" data-filter="Mapper">Mapper</button>
+        <button class="btn cat-btn" data-filter="Aprendiz Mapper">Aprendiz</button>
+      </section>
+
+      <section class="table-wrapper">
+        <table class="members-table" aria-live="polite">
+          <thead>
+            <tr>
+              <th>Nível</th>
+              <th>NICK</th>
+              <th>RG</th>
+              <th>Cargo</th>
+              <th>Registrado por</th>
+              <th>Data/Hora</th>
+            </tr>
+          </thead>
+          <tbody id="membersTableBody"></tbody>
+        </table>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <a href="about.html" class="btn-footer">Sobre nós</a>
+    </footer>
+  </div>
+
+  <div id="detailPanel" class="overlay hidden" aria-modal="true" role="dialog">
+    <div class="drawer" style="width: min(96vw, 600px);">
+      <button class="close" id="detailClose">✕</button>
+      <h2>Perfil do Membro</h2>
+      <div id="detailContent" class="detail-content"></div>
+    </div>
+  </div>
+
+  <div id="loginModal" class="overlay hidden" aria-modal="true" role="dialog">
+    <div class="drawer small">
+      <button class="close" id="loginModalClose">✕</button>
+      <h2>Login Administrativo</h2>
+      <p>Digite a senha de administrador</p>
+      <input id="adminPassword" type="password" placeholder="Senha" />
+      <button class="btn" id="adminSubmitBtn">Entrar</button>
+      <p id="loginMsg" class="message"></p>
+    </div>
+  </div>
+
+  <div class="nav-buttons">
+    <button id="scrollToTop" class="nav-btn">↑</button>
+    <button id="scrollToBottom" class="nav-btn">↓</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Adicionar auxiliar - Setor Mapper</title><link rel="stylesheet" href="styles.css" /></head>
+<body>
+  <div class="scene" aria-hidden="true"><div class="sphere"></div><div class="cube"></div><div class="cube alt"></div></div>
+  <div class="app-container">
+    <header class="app-header"><img src="https://cdn.discordapp.com/attachments/1472997423646511278/1489422331507114074/logo_new.png?ex=69d05c23&is=69cf0aa3&hm=2f8dd2c5c25e8a49e93f9d666dc236921c4e452bcdf600931204367757dde5c9" alt="Logo" style="height: 50px; margin-bottom: 0.5rem; display: block;" /><h1>Adicionar Auxiliar Mapper(a)</h1><p>Promova um integrante a auxiliar.</p></header>
+    <main class="panel">
+      <form id="crudForm" class="crud-form" data-action="add" data-context="add_aux">
+        <label>Nível (%)<input id="fieldLevel" name="level" type="number" min="0" required /></label>
+        <label>NICK<input id="fieldNick" name="nick" type="text" required /></label>
+        <label>RG<input id="fieldRg" name="rg" type="text" required /></label>
+        <label>Discord<input id="fieldDiscord" name="discord" type="text" placeholder="usuario#1234" required /></label>
+        <label>Número<input id="fieldNumero" name="numero" type="tel" placeholder="11999999999" required /></label>
+        <label>Idade<input id="fieldIdade" name="idade" type="number" min="13" max="100" required /></label>
+        <label>Cargo<input id="fieldRole" type="text" value="Auxiliar Mapper" readonly /></label>
+        <label>Level<input id="fieldLevelCatalog" name="levelCatalog" type="number" min="1" max="10" placeholder="Ex: 1, 2, 3..." required /></label>
+        <label>Org/Corp<select id="fieldOrgCorp" required><option value="Independente">Independente</option><option value="Organização">Organização</option><option value="Corporação">Corporação</option><option value="Horizonte">Horizonte</option></select></label>
+        <label>Registrado por<input id="fieldBy" name="by" type="text" placeholder="Nome do responsável" required /></label>
+        <button type="submit" class="btn">Confirmar</button>
+      </form>
+      <p id="crudMessage" class="message"></p>
+      <p style="text-align: center;">
+        <a class="btn-footer" href="responsavel.html">Voltar</a>
+      </p>
+    </main>
+  </div>
+  <script src="scripts-crud.js"></script>
+</body>
+</html>
+

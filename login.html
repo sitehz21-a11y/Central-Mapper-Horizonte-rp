@@ -1,0 +1,41 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Administrativo - Mapper Sector</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="scene" aria-hidden="true">
+    <div class="sphere"></div>
+    <div class="cube"></div>
+    <div class="cube alt"></div>
+  </div>
+  <div class="app-container">
+    <header class="app-header">
+      <img src="https://cdn.discordapp.com/attachments/1472997423646511278/1489422331507114074/logo_new.png?ex=69d05c23&is=69cf0aa3&hm=2f8dd2c5c25e8a49e93f9d666dc236921c4e452bcdf600931204367757dde5c9" alt="Logo" style="height: 50px; margin-bottom: 0.5rem;" />
+      <h1>Login Administrativo</h1>
+      <p>Insira as credenciais para acessar as funções administrativas</p>
+    </header>
+
+    <main class="panel">
+      <form id="loginForm" class="crud-form" data-action="login">
+        <label>Função
+          <select id="adminRole" required>
+            <option value="Auxiliar">Auxiliar</option>
+            <option value="Responsável">Responsável</option>
+          </select>
+        </label>
+        <label>Senha
+          <input id="adminPassword" type="password" placeholder="Senha administrativa" required />
+        </label>
+        <button type="submit" class="btn">Entrar</button>
+      </form>
+      <p id="loginMessage" class="message"></p>
+      <p><a class="btn" href="index.html">Voltar para inicial</a></p>
+    </main>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

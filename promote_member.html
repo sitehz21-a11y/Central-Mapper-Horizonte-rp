@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Promover membro - Setor Mapper</title><link rel="stylesheet" href="styles.css" /></head>
+<body>
+  <div class="scene" aria-hidden="true"><div class="sphere"></div><div class="cube"></div><div class="cube alt"></div></div>
+  <div class="app-container">
+    <header class="app-header"><img src="https://cdn.discordapp.com/attachments/1472997423646511278/1489422331507114074/logo_new.png?ex=69d05c23&is=69cf0aa3&hm=2f8dd2c5c25e8a49e93f9d666dc236921c4e452bcdf600931204367757dde5c9" alt="Logo" style="height: 50px; margin-bottom: 0.5rem; display: block;" /><h1>Promover Membro</h1><p>Atualize cargo e nível do integrante.</p></header>
+    <main class="panel">
+      <form id="crudForm" class="crud-form" data-action="promote" data-context="promote_member">
+        <label>Nível (%)<input id="fieldLevel" name="level" type="number" min="0" required /></label>
+        <label>NICK<input id="fieldNick" name="nick" type="text" required /></label>
+        <label>RG<input id="fieldRg" name="rg" type="text" required /></label>
+        <label>Novo Cargo<select id="fieldRole" required><option value="Aprendiz Mapper">Aprendiz Mapper</option><option value="Mapper">Mapper</option><option value="Auxiliar Mapper">Auxiliar Mapper</option><option value="Responsável Mapper">Responsável Mapper</option></select></label>
+        <label>Registrado por<input id="fieldBy" name="by" type="text" placeholder="Nome do responsável" required /></label>
+        <button type="submit" class="btn">Confirmar</button>
+      </form>
+      <p id="crudMessage" class="message"></p>
+      <p style="text-align: center;">
+        <a class="btn-footer" href="responsavel.html">Voltar</a>
+      </p>
+    </main>
+  </div>
+  <script src="scripts-crud.js"></script>
+</body>
+</html>
+

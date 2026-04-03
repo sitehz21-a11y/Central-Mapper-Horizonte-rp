@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adicionar Membro por Tabela - Setor Mapper</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="scene" aria-hidden="true">
+    <div class="sphere"></div>
+    <div class="cube"></div>
+    <div class="cube alt"></div>
+  </div>
+  <div class="app-container">
+    <header class="app-header">
+      <img src="https://cdn.discordapp.com/attachments/1472997423646511278/1489422331507114074/logo_new.png?ex=69d05c23&is=69cf0aa3&hm=2f8dd2c5c25e8a49e93f9d666dc236921c4e452bcdf600931204367757dde5c9" alt="Logo" style="height: 50px; margin-bottom: 0.5rem;" />
+      <h1>Adicionar Membro por Tabela</h1>
+      <p>Cole os dados formatados do membro</p>
+    </header>
+    <main class="panel">
+      <form id="tableForm" class="crud-form">
+        <label for="memberData">Cole os dados no formato abaixo:</label>
+        <textarea id="memberData" placeholder="Nick: 
+Idade: 
+RG: 
+Level: 
+Org/corp: 
+Número: 
+Discord:" style="width: 100%; min-height: 200px; padding: 0.75rem; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.4); border-radius: 0.65rem; color: #fff; margin-top: 0.3rem; font-family: monospace; resize: vertical;" required></textarea>
+        <label>Cargo<select id="fieldTableRole" required style="margin-top: 0.5rem;"><option value="Aprendiz Mapper">Aprendiz Mapper</option><option value="Mapper">Mapper</option><option value="Auxiliar Mapper">Auxiliar Mapper</option><option value="Responsável Mapper">Responsável Mapper</option></select></label>
+        <label>Nível de experiência (%)<input id="fieldTableExp" type="number" min="0" value="50" required /></label>
+        <button type="submit" class="btn" style="margin-top: 1rem;">Adicionar Membro</button>
+      </form>
+      <p id="tableMessage" class="message"></p>
+      <div id="previewTable" style="margin-top: 2rem; display: none;">
+        <h3 style="color: #60a5fa; margin-bottom: 1rem;">Prévia dos dados:</h3>
+        <div id="previewContent" style="background: rgba(15,23,42,.7); padding: 1rem; border-radius: 0.75rem; border: 1px solid rgba(59,130,246,.3);"></div>
+      </div>
+      <p style="text-align: center; margin-top: 2rem;">
+        <a class="btn-footer" id="backBtn" href="responsavel.html">Voltar</a>
+      </p>
+    </main>
+  </div>
+  <script src="script.js"></script>
+  <script>
+    const role = sessionStorage.getItem('mapperAdminRole');
+    const backBtn = document.getElementById('backBtn');
+    if (role === 'Auxiliar') {
+      backBtn.href = 'auxiliar.html';
+    } else {
+      backBtn.href = 'responsavel.html';
+    }
+
+    document.getElementById('tableForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      const textData = document.getElementById('memberData').value.trim();
+      const message = document.getElementById('tableMessage');
+      const previewTable = document.getElementById('previewTable');
+      const previewContent = document.getElementById('previewContent');
+
+      if (!textData) {
+        message.textContent = '✗ Por favor, cole os dados do membro';
+        message.style.color = '#f87171';
+        return;
+      }
+
+      // Parse the text data
+      const lines = textData.split('\n');
+      const memberData = {};
+
+      lines.forEach(line => {
+        const [key, value] = line.split(':').map(s => s.trim());
+        if (key && value) {
+          memberData[key.toLowerCase()] = value;
+        }
+      });
+
+      // Validate required fields
+      if (!memberData.nick || !memberData.rg || !memberData.level || !memberData['org/corp'] || !memberData.número || !memberData.discord) {
+        message.textContent = '✗ Preencha todos os campos obrigatórios';
+        message.style.color = '#f87171';
+        return;
+      }
+
+      // Get current user info
+      const sessionRole = sessionStorage.getItem('mapperAdminRole');
+      const by = sessionRole === 'Auxiliar' ? 'Auxiliar Mapper' : sessionRole === 'Responsável' ? 'Responsável Mapper' : 'Sistema';
+
+      const selectedRole = document.getElementById('fieldTableRole').value;
+      const selectedExp = parseInt(document.getElementById('fieldTableExp').value, 10) || parseInt(memberData.level, 10) || 1;
+
+      // Create member object
+      const newMember = {
+        nick: memberData.nick,
+        rg: memberData.rg,
+        level: parseInt(memberData.level, 10) || selectedExp,
+        levelExp: selectedExp,
+        orgCorp: memberData['org/corp'] || 'Independente',
+        numero: memberData.número,
+        discord: memberData.discord,
+        idade: parseInt(memberData.idade, 10) || 0,
+        role: selectedRole,
+        by: by
+      };
+
+      // Show preview
+      previewContent.innerHTML = `
+        <p><strong>NICK:</strong> ${newMember.nick}</p>
+        <p><strong>RG:</strong> ${newMember.rg}</p>
+        <p><strong>Level:</strong> ${newMember.level}</p>
+        <p><strong>Org/Corp:</strong> ${newMember.orgCorp}</p>
+        <p><strong>Número:</strong> ${newMember.numero}</p>
+        <p><strong>Discord:</strong> ${newMember.discord}</p>
+        <p><strong>Idade:</strong> ${newMember.idade || 'N/A'}</p>
+      `;
+      previewTable.style.display = 'block';
+
+      // Try to add the member
+      const success = addMember(newMember);
+      if (success) {
+        message.textContent = `✓ ${newMember.nick} adicionado com sucesso!`;
+        message.style.color = '#a7f3d0';
+        setTimeout(() => {
+          window.history.back();
+        }, 1500);
+      } else {
+        message.textContent = `✗ Erro ao adicionar ${newMember.nick}. Talvez já exista um membro com esses dados.`;
+        message.style.color = '#f87171';
+      }
+    });
+  </script>
+</body>
+</html>

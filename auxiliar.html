@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Auxiliar - Setor Mapper</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="scene" aria-hidden="true">
+    <div class="sphere"></div>
+    <div class="cube"></div>
+    <div class="cube alt"></div>
+  </div>
+  <div class="app-container">
+    <header class="app-header">
+      <img src="https://cdn.discordapp.com/attachments/1472997423646511278/1489422331507114074/logo_new.png?ex=69d05c23&is=69cf0aa3&hm=2f8dd2c5c25e8a49e93f9d666dc236921c4e452bcdf600931204367757dde5c9" alt="Logo" style="height: 50px; margin-bottom: 0.5rem;" />
+      <h1>Painel Auxiliar Mapper(a)</h1>
+      <p>Gerenciar membros e operações</p>
+    </header>
+
+    <main class="panel">
+      <p id="auxStatus" class="message" style="text-align: center; font-size: 1.1rem;">Acesso autorizado como Auxiliar</p>
+      
+      <div class="admin-actions">
+        <a class="btn" href="add_member.html">Adicionar membro</a>
+        <a class="btn" href="add_table_member.html">Adicionar membro por tabela</a>
+        <a class="btn" href="remove_member.html">Remover membro</a>
+        <a class="btn" href="promote_member.html">Promover membro</a>
+        <a class="btn" href="demote_member.html">Rebaixar membro</a>
+        <button class="btn btn-danger-outline" id="btnRemoveAllAux">🗑️ Remover Aprendizes</button>
+      </div>
+
+      <p style="text-align: center; margin-top: 2rem;">
+        <a class="btn-footer" href="index.html">Voltar ao Painel Principal</a>
+      </p>
+    </main>
+  </div>
+
+  <script>
+    const role = sessionStorage.getItem('mapperAdminRole');
+    if (role !== 'Auxiliar') {
+      window.location.href = 'index.html';
+    }
+  </script>
+  <script src="admin-dashboard.js"></script>
+</body>
+</html>
