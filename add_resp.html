@@ -2,28 +2,17 @@
 <html lang="pt-BR">
 <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Adicionar responsável - Setor Mapper</title><link rel="stylesheet" href="styles.css" />
   
-  <!-- Firebase Initialization -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+  <!-- Supabase Initialization -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = 'YOUR_SUPABASE_URL'; // Substitua pela URL do seu projeto Supabase
+    const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'; // Substitua pela chave anônima
+    window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    window.dbReady = true;
+    console.log('Supabase initialized successfully in add_resp.html');
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBcNRLYvv22b9VQ5_NgT2PiNWusI3y7YCk",
-      authDomain: "mappershz.firebaseapp.com",
-      projectId: "mappershz",
-      storageBucket: "mappershz.firebasestorage.app",
-      messagingSenderId: "132498202128",
-      appId: "1:132498202128:web:c3d7ba2b2f2f425638f495",
-      measurementId: "G-6DDELDM86C"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    
-    // Torna db global para usar em scripts-crud.js
-    window.firebaseApp = app;
-    window.db = db;
-    window.firebaseReady = true;
+    // Dispara evento para scripts que aguardam DB
+    window.dispatchEvent(new Event('dbReady'));
   </script>
 </head>
 <body>
@@ -32,13 +21,13 @@
     <header class="app-header"><img src="https://cdn.discordapp.com/attachments/1472997423646511278/1489422331507114074/logo_new.png?ex=69d05c23&is=69cf0aa3&hm=2f8dd2c5c25e8a49e93f9d666dc236921c4e452bcdf600931204367757dde5c9" alt="Logo" style="height: 50px; margin-bottom: 0.5rem; display: block;" /><h1>Adicionar Responsável Mapper(a)</h1><p>Promova um integrante a responsável.</p></header>
     <main class="panel">
       <form id="crudForm" class="crud-form" data-action="add" data-context="add_resp">
-        <label>Nível (%)<input id="fieldLevel" name="level" type="number" min="0" required /></label>
+        <label>Nível (%)<input id="fieldLevel" name="level" type="number" min="0" /></label>
         <label>NICK<input id="fieldNick" name="nick" type="text" required /></label>
         <label>RG<input id="fieldRg" name="rg" type="text" required /></label>
         <label>Discord<input id="fieldDiscord" name="discord" type="text" placeholder="usuario#1234" required /></label>
         <label>Cargo<input id="fieldRole" type="text" value="Responsável Mapper" readonly /></label>
-        <label>Level<input id="fieldLevelCatalog" name="levelCatalog" type="number" min="1" placeholder="Ex: 1, 2, 3..." required /></label>
-        <label>Registrado por<input id="fieldBy" name="by" type="text" placeholder="Nome do responsável" required /></label>
+        <label>Level<input id="fieldLevelCatalog" name="levelCatalog" type="number" min="1" placeholder="Ex: 1, 2, 3..." /></label>
+        <label>Registrado por<input id="fieldBy" name="by" type="text" placeholder="Nome do responsável" /></label>
         <button type="submit" class="btn">Confirmar</button>
       </form>
       <p id="crudMessage" class="message"></p>

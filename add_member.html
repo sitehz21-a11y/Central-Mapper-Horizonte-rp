@@ -6,28 +6,17 @@
   <title>Adicionar membro - Setor Mapper</title>
   <link rel="stylesheet" href="styles.css" />
   
-  <!-- Firebase Initialization -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+  <!-- Supabase Initialization -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = 'YOUR_SUPABASE_URL'; // Substitua pela URL do seu projeto Supabase
+    const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'; // Substitua pela chave anônima
+    window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    window.dbReady = true;
+    console.log('Supabase initialized successfully in add_member.html');
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBcNRLYvv22b9VQ5_NgT2PiNWusI3y7YCk",
-      authDomain: "mappershz.firebaseapp.com",
-      projectId: "mappershz",
-      storageBucket: "mappershz.firebasestorage.app",
-      messagingSenderId: "132498202128",
-      appId: "1:132498202128:web:c3d7ba2b2f2f425638f495",
-      measurementId: "G-6DDELDM86C"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    
-    // Torna db global para usar em scripts-crud.js
-    window.firebaseApp = app;
-    window.db = db;
-    window.firebaseReady = true;
+    // Dispara evento para scripts que aguardam DB
+    window.dispatchEvent(new Event('dbReady'));
   </script>
 </head>
 <body>
@@ -44,16 +33,16 @@
     </header>
     <main class="panel">
       <form id="crudForm" class="crud-form" data-action="add" data-context="add_member">
-        <label>Nível de experiência (%)<input id="fieldLevel" name="level" type="number" min="0" required /></label>
+        <label>Nível de experiência (%)<input id="fieldLevel" name="level" type="number" min="0" /></label>
         <label>NICK<input id="fieldNick" name="nick" type="text" required /></label>
         <label>RG<input id="fieldRg" name="rg" type="text" required /></label>
         <label>Discord<input id="fieldDiscord" name="discord" type="text" placeholder="usuario#1234" required /></label>
-        <label>Número<input id="fieldNumero" name="numero" type="tel" placeholder="11999999999" required /></label>
-        <label>Idade<input id="fieldIdade" name="idade" type="number" min="13" max="100" required /></label>
+        <label>Número<input id="fieldNumero" name="numero" type="tel" placeholder="11999999999" /></label>
+        <label>Idade<input id="fieldIdade" name="idade" type="number" min="13" max="100" /></label>
         <label>Cargo<select id="fieldRole" required><option value="Aprendiz Mapper">Aprendiz Mapper</option><option value="Mapper">Mapper</option></select></label>
-        <label>Level<input id="fieldLevelCatalog" name="levelCatalog" type="number" min="1" max="10" placeholder="Ex: 1, 2, 3..." required /></label>
-        <label>Org/Corp<select id="fieldOrgCorp" required><option value="Independente">Independente</option><option value="Organização">Organização</option><option value="Corporação">Corporação</option><option value="Horizonte">Horizonte</option></select></label>
-        <label>Registrado por<input id="fieldBy" name="by" type="text" placeholder="Nome do responsável" required /></label>
+        <label>Level<input id="fieldLevelCatalog" name="levelCatalog" type="number" min="1" max="10" placeholder="Ex: 1, 2, 3..." /></label>
+        <label>Org/Corp<select id="fieldOrgCorp"><option value="Independente">Independente</option><option value="Organização">Organização</option><option value="Corporação">Corporação</option><option value="Horizonte">Horizonte</option></select></label>
+        <label>Registrado por<input id="fieldBy" name="by" type="text" placeholder="Nome do responsável" /></label>
         <button type="submit" class="btn">Confirmar</button>
       </form>
       <p id="crudMessage" class="message"></p>

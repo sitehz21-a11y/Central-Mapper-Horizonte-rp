@@ -1,28 +1,40 @@
-﻿const COLLECTION_NAME = 'mapperMembers';
+﻿const TABLE_NAME = 'mapper_members';
 let membersCache = [];
+let listenerConfigured = false;
 
-// Aguardar Firebase ficar pronto
-function waitForFirebase() {
+// Aguardar Supabase ficar pronto
+function waitForDB() {
   return new Promise((resolve) => {
-    if (window.firebaseReady && window.db) {
+    console.log('waitForDB called, dbReady:', window.dbReady, 'supabase:', !!window.supabase);
+    if (window.dbReady && window.supabase) {
+      console.log('Supabase already ready');
       resolve();
     } else {
-      setTimeout(() => waitForFirebase().then(resolve), 100);
+      console.log('Waiting for dbReady event');
+      window.addEventListener('dbReady', () => {
+        console.log('dbReady event received');
+        resolve();
+      }, { once: true });
     }
   });
 }
 
 async function getMembers() {
-  await waitForFirebase();
-  console.log('Firebase ready, loading members...');
+  console.log('Iniciando getMembers...');
+  await waitForDB();
+  console.log('Supabase ready, loading members...');
   try {
-    const snapshot = await window.db.collection(COLLECTION_NAME).get();
-    const members = [];
-    snapshot.forEach(doc => {
-      members.push({ id: doc.id, ...doc.data() });
-    });
+    const { data, error } = await window.supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .order('registered', { ascending: false });
+    
+    if (error) throw error;
+    
+    console.log('Data received:', data);
+    const members = data.map(item => ({ id: item.id, ...item }));
     membersCache = members;
-    console.log('Members loaded from Firestore:', members);
+    console.log('Members loaded from Supabase:', members);
     return members;
   } catch (err) {
     console.error('Erro ao carregar membros:', err);
@@ -31,7 +43,7 @@ async function getMembers() {
 }
 
 async function addMember(member) {
-  await waitForFirebase();
+  await waitForDB();
   try {
     const exists = membersCache.some(m =>
       m.nick.toLowerCase() === member.nick.toLowerCase() && m.rg === member.rg
@@ -39,8 +51,15 @@ async function addMember(member) {
     if (exists) return false;
 
     member.registered = new Date().toLocaleString();
-    const docRef = await window.db.collection(COLLECTION_NAME).add(member);
-    membersCache.push({ id: docRef.id, ...member });
+    
+    const { data, error } = await window.supabase
+      .from(TABLE_NAME)
+      .insert([member])
+      .select();
+    
+    if (error) throw error;
+    
+    console.log('Member added:', data);
     return true;
   } catch (err) {
     console.error('Erro ao adicionar membro:', err);
@@ -49,21 +68,16 @@ async function addMember(member) {
 }
 
 async function removeMember(nick, rg) {
-  await waitForFirebase();
+  await waitForDB();
   try {
-    const snapshot = await window.db.collection(COLLECTION_NAME)
-      .where('nick', '==', nick)
-      .where('rg', '==', rg)
-      .get();
-
-    if (snapshot.empty) return false;
-
-    const batch = window.db.batch();
-    snapshot.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-    await batch.commit();
-
+    const { error } = await window.supabase
+      .from(TABLE_NAME)
+      .delete()
+      .eq('nick', nick)
+      .eq('rg', rg);
+    
+    if (error) throw error;
+    
     membersCache = membersCache.filter(m => !(m.nick === nick && m.rg === rg));
     return true;
   } catch (err) {
@@ -73,14 +87,15 @@ async function removeMember(nick, rg) {
 }
 
 async function removeAllMembers() {
-  await waitForFirebase();
+  await waitForDB();
   try {
-    const snapshot = await window.db.collection(COLLECTION_NAME).get();
-    const batch = window.db.batch();
-    snapshot.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-    await batch.commit();
+    const { error } = await window.supabase
+      .from(TABLE_NAME)
+      .delete()
+      .neq('id', 0); // Deleta todos
+    
+    if (error) throw error;
+    
     membersCache = [];
     return true;
   } catch (err) {
@@ -90,15 +105,8 @@ async function removeAllMembers() {
 }
 
 async function updateMemberRole(nick, rg, role, level, by) {
-  await waitForFirebase();
+  await waitForDB();
   try {
-    const snapshot = await window.db.collection(COLLECTION_NAME)
-      .where('nick', '==', nick)
-      .where('rg', '==', rg)
-      .get();
-
-    if (snapshot.empty) return false;
-
     const updateData = {
       role: role,
       level: level,
@@ -107,12 +115,14 @@ async function updateMemberRole(nick, rg, role, level, by) {
       registered: new Date().toLocaleString()
     };
 
-    const batch = window.db.batch();
-    snapshot.forEach(doc => {
-      batch.update(doc.ref, updateData);
-    });
-    await batch.commit();
-
+    const { error } = await window.supabase
+      .from(TABLE_NAME)
+      .update(updateData)
+      .eq('nick', nick)
+      .eq('rg', rg);
+    
+    if (error) throw error;
+    
     membersCache = membersCache.map(m =>
       (m.nick === nick && m.rg === rg) ? { ...m, ...updateData } : m
     );
@@ -124,7 +134,9 @@ async function updateMemberRole(nick, rg, role, level, by) {
 }
 
 async function renderIndex() {
+  console.log('Iniciando renderIndex...');
   const members = await getMembers();
+  console.log('Members received in renderIndex:', members);
   const tableBody = document.getElementById('membersTableBody');
   const totalMembers = document.getElementById('totalMembers');
   const totalResp = document.getElementById('totalResp');
@@ -135,13 +147,19 @@ async function renderIndex() {
   let activeFilter = 'all';
 
   function render() {
-    console.log('Rendering members, activeFilter:', activeFilter, 'members:', members);
+    console.log('🎨 render() EXECUTADO');
+    console.log('   Filtro ativo:', activeFilter);
+    console.log('   Total de membros em cache:', membersCache.length);
+    console.log('   Membros:', membersCache);
+    
     tableBody.innerHTML = '';
-    let filtered = members.filter(m => activeFilter === 'all' || m.role === activeFilter);
+    let filtered = membersCache.filter(m => activeFilter === 'all' || m.role === activeFilter);
     filtered = sortMembersByHierarchy(filtered);
 
+    console.log('   Membros após filtrar:', filtered.length);
+
     if (filtered.length === 0) {
-      if (members.length === 0) {
+      if (membersCache.length === 0) {
         // Nenhum membro cadastrado
         tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #93c5fd; padding: 2rem;">Nenhum membro cadastrado no setor<br><small style="color: #64748b; font-size: 0.8rem;">Adicione membros usando os botões de administração</small></td></tr>';
       } else {
@@ -150,6 +168,7 @@ async function renderIndex() {
       }
     } else {
       filtered.forEach(m => {
+        console.log('   🔹 Renderizando membro:', m.nick, '- Role:', m.role, '- Level:', m.level);
         const row = document.createElement('tr');
         row.style.cursor = 'pointer';
         row.innerHTML = `
@@ -165,10 +184,12 @@ async function renderIndex() {
       });
     }
 
-    totalMembers.textContent = members.length;
-    totalResp.textContent = members.filter(m => m.role === 'Responsável Mapper').length;
-    totalAux.textContent = members.filter(m => m.role === 'Auxiliar Mapper').length;
-    totalMapper.textContent = members.filter(m => m.role === 'Mapper' || m.role === 'Aprendiz Mapper').length;
+    totalMembers.textContent = membersCache.length;
+    totalResp.textContent = membersCache.filter(m => m.role === 'Responsável Mapper').length;
+    totalAux.textContent = membersCache.filter(m => m.role === 'Auxiliar Mapper').length;
+    totalMapper.textContent = membersCache.filter(m => m.role === 'Mapper' || m.role === 'Aprendiz Mapper').length;
+    
+    console.log('   📊 Resumo: Total=' + totalMembers.textContent + ' | Resp=' + totalResp.textContent + ' | Aux=' + totalAux.textContent + ' | Mapper=' + totalMapper.textContent);
   }
 
   filters.forEach(btn => {
@@ -178,6 +199,17 @@ async function renderIndex() {
       render();
     });
   });
+
+  // Para Supabase, não há listener em tempo real automático como Firestore
+  // Vamos fazer polling simples a cada 10 segundos para atualizar
+  if (!listenerConfigured) {
+    setInterval(async () => {
+      console.log('🔄 Polling: Recarregando membros do Supabase...');
+      const members = await getMembers();
+      render();
+    }, 10000); // 10 segundos
+    listenerConfigured = true;
+  }
 
   render();
 }
@@ -306,6 +338,7 @@ function handleNavButtons() {
 
   async function initApp() {
     const path = window.location.pathname.split('/').pop();
+    console.log('initApp called, path:', path);
 
     if (path === 'index.html' || path === '') {
       // Pequeno delay para garantir que todos os elementos estejam disponíveis

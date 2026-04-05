@@ -3,27 +3,16 @@
 <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Rebaixar membro - Setor Mapper</title><link rel="stylesheet" href="styles.css" />
   
   <!-- Firebase Initialization -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = 'YOUR_SUPABASE_URL'; // Substitua pela URL do seu projeto Supabase
+    const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'; // Substitua pela chave anônima
+    window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    window.dbReady = true;
+    console.log('Supabase initialized successfully in demote_member.html');
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBcNRLYvv22b9VQ5_NgT2PiNWusI3y7YCk",
-      authDomain: "mappershz.firebaseapp.com",
-      projectId: "mappershz",
-      storageBucket: "mappershz.firebasestorage.app",
-      messagingSenderId: "132498202128",
-      appId: "1:132498202128:web:c3d7ba2b2f2f425638f495",
-      measurementId: "G-6DDELDM86C"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    
-    // Torna db global para usar em scripts-crud.js
-    window.firebaseApp = app;
-    window.db = db;
-    window.firebaseReady = true;
+    // Dispara evento para scripts que aguardam DB
+    window.dispatchEvent(new Event('dbReady'));
   </script>
 </head>
 <body>

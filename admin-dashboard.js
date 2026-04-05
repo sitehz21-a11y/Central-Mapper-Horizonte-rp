@@ -14,7 +14,7 @@ function waitForFirebase() {
     if (window.firebaseReady && window.db) {
       resolve();
     } else {
-      setTimeout(() => waitForFirebase().then(resolve), 100);
+      window.addEventListener('firebaseReady', () => resolve(), { once: true });
     }
   });
 }
